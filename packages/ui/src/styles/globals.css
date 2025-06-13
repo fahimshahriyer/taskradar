@@ -125,3 +125,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+.dark .dotted-bg {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    #151414 1px,
+    transparent 0
+  );
+  background-size: 16px 16px;
+}
+
+.light .dotted-bg {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    #e7e7e7 1px,
+    transparent 0
+  );
+  background-size: 16px 16px;
+}
