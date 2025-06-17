@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   AudioWaveform,
   Blocks,
@@ -9,40 +9,43 @@ import {
   Home,
   Inbox,
   MessageCircleQuestion,
+  Radar,
+  Satellite,
   Search,
   Settings2,
   Sparkles,
+  Target,
   Trash2,
-} from "lucide-react"
+} from "lucide-react";
 
-import { NavFavorites } from "@/components/nav-favorites"
-import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
-import { NavWorkspaces } from "@/components/nav-workspaces"
-import { TeamSwitcher } from "@/components/team-switcher"
+import { NavFavorites } from "@/components/nav-favorites";
+import { NavMain } from "@/components/nav-main";
+import { NavSecondary } from "@/components/nav-secondary";
+import { NavWorkspaces } from "@/components/nav-workspaces";
+import { TeamSwitcher } from "@/components/team-switcher";
 import {
   Sidebar,
   SidebarContent,
   SidebarHeader,
   SidebarRail,
-} from "@workspace/ui/components/sidebar"
+} from "@workspace/ui/components/sidebar";
 
 // This is sample data.
 const data = {
   teams: [
     {
-      name: "Acme Inc",
-      logo: Command,
-      plan: "Enterprise",
+      name: "RadarVision Labs",
+      logo: Radar, // suggest replacing with a radar icon component
+      plan: "Pro",
     },
     {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
+      name: "OrbitWorks",
+      logo: Satellite, // or a globe/tech icon
+      plan: "Starter",
     },
     {
-      name: "Evil Corp.",
-      logo: Command,
+      name: "FocusNest",
+      logo: Target, // or Bullseye icon for precision
       plan: "Free",
     },
   ],
@@ -53,29 +56,24 @@ const data = {
       icon: Search,
     },
     {
+      title: "Mission Control",
+      url: "/missioncontrol",
+      icon: Radar,
+      isActive: true,
+    },
+    {
       title: "Ask AI",
       url: "#",
       icon: Sparkles,
     },
     {
-      title: "Home",
+      title: "Calendar",
       url: "#",
-      icon: Home,
-      isActive: true,
-    },
-    {
-      title: "Inbox",
-      url: "#",
-      icon: Inbox,
+      icon: Calendar,
       badge: "10",
     },
   ],
   navSecondary: [
-    {
-      title: "Calendar",
-      url: "#",
-      icon: Calendar,
-    },
     {
       title: "Settings",
       url: "#",
@@ -99,54 +97,54 @@ const data = {
   ],
   favorites: [
     {
-      name: "Project Management & Task Tracking",
+      name: "Radar Board: Work Projects & Deadlines",
       url: "#",
-      emoji: "📊",
+      emoji: "📌",
     },
     {
-      name: "Family Recipe Collection & Meal Planning",
+      name: "Life Admin: Errands & Personal Tasks",
       url: "#",
-      emoji: "🍳",
+      emoji: "🧾",
     },
     {
-      name: "Fitness Tracker & Workout Routines",
+      name: "Focus Zone: Health & Fitness Goals",
       url: "#",
-      emoji: "💪",
+      emoji: "🏃",
     },
     {
-      name: "Book Notes & Reading List",
+      name: "Radar Reads: Articles & Book Notes",
       url: "#",
-      emoji: "📚",
+      emoji: "📖",
     },
     {
-      name: "Sustainable Gardening Tips & Plant Care",
+      name: "Green Radar: Plant Care & Watering Schedule",
       url: "#",
-      emoji: "🌱",
+      emoji: "🪴",
     },
     {
-      name: "Language Learning Progress & Resources",
+      name: "Language Radar: Vocab Practice & Milestones",
       url: "#",
-      emoji: "🗣️",
+      emoji: "🌍",
     },
     {
-      name: "Home Renovation Ideas & Budget Tracker",
+      name: "Home Tasks: Fixes, Renovation, Upkeep",
       url: "#",
-      emoji: "🏠",
+      emoji: "🔧",
     },
     {
-      name: "Personal Finance & Investment Portfolio",
+      name: "Money Radar: Bills, Budgets & Investments",
       url: "#",
-      emoji: "💰",
+      emoji: "💳",
     },
     {
-      name: "Movie & TV Show Watchlist with Reviews",
+      name: "Watchlist Radar: Films, Shows & Ratings",
       url: "#",
-      emoji: "🎬",
+      emoji: "🎥",
     },
     {
-      name: "Daily Habit Tracker & Goal Setting",
+      name: "Daily Pulse: Habits & Micro-goals",
       url: "#",
-      emoji: "✅",
+      emoji: "🧠",
     },
   ],
   workspaces: [
@@ -256,7 +254,7 @@ const data = {
       ],
     },
   ],
-}
+};
 
 export function SidebarLeft({
   ...props
@@ -269,10 +267,10 @@ export function SidebarLeft({
       </SidebarHeader>
       <SidebarContent>
         <NavFavorites favorites={data.favorites} />
-        <NavWorkspaces workspaces={data.workspaces} />
+        {/* <NavWorkspaces workspaces={data.workspaces} /> */}
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

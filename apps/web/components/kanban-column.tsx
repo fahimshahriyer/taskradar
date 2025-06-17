@@ -33,70 +33,70 @@ export function KanbanColumn() {
   const [tasks, setTasks] = useState<Task[]>([
     {
       id: "task-1",
-      title: "Research competitors",
+      title: "Research recommended reading lists",
       description:
-        "Analyze top 5 competitors in the market and prepare summary report",
-      priority: "high",
-      attachments: 2,
-      comments: 8,
+        "Look up top book recommendations in productivity, philosophy, and creativity genres.",
+      priority: "medium",
+      attachments: 1,
+      comments: 3,
       assignees: [
-        { initial: "A", color: "bg-gray-200" },
-        { initial: "J", color: "bg-green-200" },
+        { initial: "F", color: "bg-indigo-200" },
+        { initial: "J", color: "bg-yellow-200" },
       ],
     },
     {
       id: "task-2",
-      title: "Design homepage mockup",
+      title: "Summarize key ideas from 'Atomic Habits'",
       description:
-        "Create wireframes for the new homepage based on user feedback",
-      priority: "medium",
-      attachments: 3,
-      comments: 12,
+        "Write down takeaways and reflections from chapters 1–5 in the book note template.",
+      priority: "high",
+      attachments: 2,
+      comments: 6,
       assignees: [
-        { initial: "D", color: "bg-green-200" },
-        { initial: "S", color: "bg-blue-200" },
+        { initial: "A", color: "bg-green-200" },
+        { initial: "S", color: "bg-pink-200" },
       ],
     },
     {
       id: "task-3",
-      title: "Update documentation",
+      title: "Organize reading list by theme",
       description:
-        "Update the API documentation with new endpoints and examples",
+        "Group all saved books into categories like mindset, history, fiction, and biography.",
       priority: "low",
-      attachments: 1,
-      comments: 4,
+      attachments: 0,
+      comments: 2,
       assignees: [{ initial: "M", color: "bg-purple-200" }],
     },
     {
       id: "task-4",
-      title: "Fix navigation bug",
+      title: "Add book highlights to Notion",
       description:
-        "Address the navigation issue on mobile devices reported by users",
-      priority: "high",
-      attachments: 0,
-      comments: 7,
+        "Transfer Kindle highlights and margin notes from 'Deep Work' into the digital notes system.",
+      priority: "medium",
+      attachments: 3,
+      comments: 4,
       assignees: [
-        { initial: "R", color: "bg-yellow-200" },
-        { initial: "T", color: "bg-gray-200" },
+        { initial: "L", color: "bg-orange-200" },
+        { initial: "N", color: "bg-blue-200" },
       ],
     },
     {
       id: "task-5",
-      title: "Fix navigation bug",
+      title: "Review and rate finished books",
       description:
-        "Address the navigation issue on mobile devices reported by users",
-      priority: "high",
-      attachments: 0,
-      comments: 7,
+        "Rate books you've read this quarter and write 1-line reviews for each.",
+      priority: "low",
+      attachments: 1,
+      comments: 1,
       assignees: [
-        { initial: "R", color: "bg-yellow-200" },
         { initial: "T", color: "bg-gray-200" },
+        { initial: "Z", color: "bg-teal-200" },
       ],
     },
   ]);
 
   return (
-    <div className="w-full h-full bg-muted/30 rounded-lg p-2">
+    <div className="w-full h-full bg-muted/30 rounded-lg p-2 overflow-y-auto">
       {/* View switcher */}
       <div className="flex items-center justify-end mb-2">
         <ToggleGroup type="single">
@@ -202,7 +202,7 @@ function TaskCardLarge({ task }: { task: Task }) {
           </div>
 
           <div
-            className={`flex items-center gap-1.5 ${priorityStyles[task.priority].bg} ${priorityStyles[task.priority].text} px-3 py-1.5 rounded-md text-sm`}
+            className={`flex items-center gap-1.5 ${priorityStyles[task.priority].bg} ${priorityStyles[task.priority].text} px-3 py-1.5 rounded-md text-xs`}
           >
             <Circle className="h-3 w-3 fill-current" />
             <span className="capitalize">{task.priority}</span>

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Circle, GripVertical } from "lucide-react";
+import { RadarBlip } from "./radar-blip";
+import { RadarControls } from "./radar-controls";
 
 interface Task {
   id: string;
@@ -13,6 +14,10 @@ interface Task {
 export function Radar() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [now, setNow] = useState(new Date());
+  const [hoveredBlipId, setHoveredBlipId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'time' | 'priority' | 'status'>('time');
+  const [showLabels, setShowLabels] = useState(true);
+  const [showGrid, setShowGrid] = useState(true);
 
   // Update time every second
   useEffect(() => {
@@ -28,53 +33,101 @@ export function Radar() {
     setTasks([
       {
         id: "1",
-        title: "Project Planning",
+        title: "Research recommended reading lists",
         dueDate: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
         priority: "medium",
         status: "todo",
       },
       {
         id: "2",
-        title: "UI Design",
+        title: "Summarize key ideas from 'Atomic Habits'",
         dueDate: new Date(now.getTime() + 48 * 60 * 60 * 1000), // 48 hours from now
         priority: "high",
         status: "in-progress",
       },
       {
         id: "3",
-        title: "Code Review",
+        title: "Organize reading list by theme",
         dueDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
         priority: "low",
         status: "todo",
       },
       {
         id: "4",
-        id: "5",
-        title: "Bug Fixing",
+        title: "Add book highlights to Notion",
         dueDate: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000), // 1 day from now
         priority: "high",
         status: "in-progress",
       },
+      {
+        id: "5",
+        title: "Review and rate finished books",
+        dueDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+        priority: "medium",
+        status: "todo",
+      },
     ]);
   }, [now]);
 
-  // Calculate task positions
+  // Determine task position based on view mode
   const calculatePosition = (task: Task) => {
-    const timeDiff = task.dueDate.getTime() - now.getTime();
-    const maxRadius = 200; // Maximum radius in pixels
-    const maxTimeDiff = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
-    const angle = (Math.random() * 2 * Math.PI).toFixed(2); // Random angle between 0 and 2π
-    const radius = (timeDiff / maxTimeDiff) * maxRadius;
-
-    return {
-      x: radius * Math.cos(angle),
-      y: radius * Math.sin(angle),
-      angle,
-    };
+    const maxRadius = 400;
+    const angle = getStableAngle(task.id);
+    
+    switch (viewMode) {
+      case 'time': {
+        const timeDiff = task.dueDate.getTime() - now.getTime();
+        const maxTimeDiff = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+        const radius = (timeDiff / maxTimeDiff) * maxRadius;
+        return {
+          x: radius * Math.cos(angle),
+          y: radius * Math.sin(angle),
+          angle,
+        };
+      }
+      case 'priority': {
+        const priorityMap = { low: 0.3, medium: 0.6, high: 1 };
+        const priorityRadius = priorityMap[task.priority] * maxRadius;
+        return {
+          x: priorityRadius * Math.cos(angle),
+          y: priorityRadius * Math.sin(angle),
+          angle,
+        };
+      }
+      case 'status': {
+        const statusMap = { todo: 0.3, 'in-progress': 0.6, done: 1 };
+        const statusRadius = statusMap[task.status] * maxRadius;
+        return {
+          x: statusRadius * Math.cos(angle),
+          y: statusRadius * Math.sin(angle),
+          angle,
+        };
+      }
+      default:
+        return {
+          x: 0,
+          y: 0,
+          angle,
+        };
+    }
   };
 
-  return (
-    <div className="relative w-full h-[600px] mx-auto my-auto max-w-3xl">
+  // Generate stable angle for each task
+  const getStableAngle = (id: string) => {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = (hash << 5) - hash + id.charCodeAt(i);
+      hash |= 0; // Convert to 32bit int
+    }
+    return (((hash % 360) + 360) % 360) * (Math.PI / 180); // 0 to 2PI
+  };
+
+
+
+  // Render grid circles
+  const renderGrid = () => {
+    if (!showGrid) return null;
+    return (
       <div className="absolute inset-0">
         {[100, 200, 300, 400].map((radius) => (
           <div
@@ -92,51 +145,91 @@ export function Radar() {
           />
         ))}
       </div>
+    );
+  };
 
+  // Render labels
+  const renderLabels = () => {
+    if (!showLabels) return null;
+    
+    const labelPositions = {
+      time: [
+        { text: 'Today', radius: 100 },
+        { text: '2 Days', radius: 200 },
+        { text: '4 Days', radius: 300 },
+        { text: '7 Days', radius: 400 },
+      ],
+      priority: [
+        { text: 'Low', radius: 120 },
+        { text: 'Medium', radius: 240 },
+        { text: 'High', radius: 360 },
+      ],
+      status: [
+        { text: 'Todo', radius: 120 },
+        { text: 'In Progress', radius: 240 },
+        { text: 'Done', radius: 360 },
+      ],
+    };
+
+    return (
+      <div className="absolute inset-0">
+        {labelPositions[viewMode].map((label, index) => (
+          <div
+            key={index}
+            className="absolute"
+            style={{
+              top: `calc(50% - ${label.radius}px)`,
+              left: `calc(50% - ${label.radius}px)`,
+              width: `${label.radius * 2}px`,
+              height: `${label.radius * 2}px`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            <div className="absolute top-0 left-0 transform translate-x-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+              {label.text}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="relative w-full h-full mx-auto my-auto overflow-hidden">
+      <RadarControls
+        viewMode={viewMode}
+        showLabels={showLabels}
+        showGrid={showGrid}
+        onViewModeChange={setViewMode}
+        onShowLabelsChange={setShowLabels}
+        onShowGridChange={setShowGrid}
+      />
+      {renderGrid()}
+      {renderLabels()}
       {/* Tasks */}
       <div className="absolute inset-0">
-        {tasks.map((task) => {
+        {tasks.map((task: Task) => {
           const { x, y } = calculatePosition(task);
           return (
-            <div
+            <RadarBlip
               key={task.id}
-              className="absolute cursor-pointer"
-              style={{
-                left: `calc(50% + ${x}px)`,
-                top: `calc(50% + ${y}px)`,
-                transform: "translate(-50%, -50%)",
-              }}
-            >
-              <div className="flex items-center gap-1 bg-background/50 rounded-lg p-2 hover:bg-background/70 transition-colors">
-                <GripVertical className="h-4 w-4 text-muted-foreground" />
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium line-clamp-1">
-                    {task.title}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <Circle className="h-2 w-2" />
-                    <span className="text-xs text-muted-foreground">
-                      {Math.round(
-                        (task.dueDate.getTime() - now.getTime()) /
-                          (24 * 60 * 60 * 1000)
-                      )}{" "}
-                      days
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              x={x}
+              y={y}
+              task={task}
+              hovered={hoveredBlipId === task.id}
+              onHover={() => setHoveredBlipId(task.id)}
+              onLeave={() => setHoveredBlipId(null)}
+            />
           );
         })}
       </div>
-
       {/* Center */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
             <div className="w-8 h-8 rounded-full bg-primary" />
           </div>
-          <span className="text-sm text-muted-foreground">Now</span>
+          <span className="text-sm text-muted-foreground">{viewMode === 'time' ? 'Now' : 'Center'}</span>
         </div>
       </div>
     </div>

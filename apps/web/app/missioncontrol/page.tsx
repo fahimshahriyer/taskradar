@@ -30,16 +30,18 @@ export default function Page() {
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbPage className="line-clamp-1">
-                    Project Management & Task Tracking
+                    Mission Control
                   </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 align-center justify-center">
-          <div className="dotted-bg w-full h-full absolute top-16 left-0 z-0"></div>
-          <Radar />
+        <div className="flex flex-1 flex-col gap-4 p-4 relative">
+          <div className="dotted-bg absolute top-16 left-0 right-0 bottom-0 z-0"></div>
+          <div className="flex-1 overflow-y-auto">
+            <Radar />
+          </div>
         </div>
       </SidebarInset>
       <SidebarRight />

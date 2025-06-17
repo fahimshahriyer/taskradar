@@ -82,7 +82,7 @@ export function SidebarRight() {
   return (
     <Sidebar
       collapsible="none"
-      className="sticky top-0 hidden h-svh border-l lg:flex w-[400px]"
+      className="sticky top-0 hidden h-svh border-l lg:flex w-[400px] overflow-y-auto"
     >
       <SidebarHeader className="border-sidebar-border h-16 border-b">
         <ColumnSwitcher columns={data.columns} defaultColumn="todo" />
