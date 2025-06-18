@@ -24,7 +24,7 @@ export function ZoomControls() {
       >
         <Plus size={20} />
       </button>
-      <div className="text-xs text-center text-gray-400 px-2 py-1 bg-gray-700/50 rounded font-mono">
+      <div className="text-[8px] text-center text-gray-400 px-2 py-1 bg-gray-700/50 rounded font-mono">
         {Math.round(state.zoom * 100)}%
       </div>
       <button

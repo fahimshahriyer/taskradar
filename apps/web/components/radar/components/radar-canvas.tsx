@@ -5,13 +5,14 @@ import { useRef, useEffect, useState, useMemo } from "react";
 import { RadarRingComponent } from "./radar-ring";
 import { TaskBlip } from "./task-blip";
 import { useRadar } from "../context/radar-context";
-import type { RadarRing, Position, Task } from "../types/";
+import type { RadarRing, Position, Task } from "../types";
 
 export function RadarCanvas() {
   const {
     state,
     tasks,
     taskPositions,
+    currentTime,
     updateTask,
     updateTaskPosition,
     setPan,
@@ -79,29 +80,33 @@ export function RadarCanvas() {
     return rings;
   }, [dimensions, state.zoom, state.panX, state.panY]);
 
-  // Generate radial lines
+  // Generate radial lines with rounded coordinates to prevent hydration mismatches
   const radialLines = useMemo(() => {
+    const round = (num: number) => Number(num.toFixed(2));
     const lines = [];
     const numberOfLines = 12; // 12 lines = 30 degrees apart
-    const maxRadius =
+    const maxRadius = round(
       Math.sqrt(
         dimensions.width * dimensions.width +
           dimensions.height * dimensions.height
-      ) / 2;
-    const lineLength = maxRadius + Math.abs(state.panX) + Math.abs(state.panY);
+      ) / 2
+    );
+    const lineLength = round(
+      maxRadius + Math.abs(state.panX) + Math.abs(state.panY)
+    );
 
     for (let i = 0; i < numberOfLines; i++) {
       const angle = (i * 360) / numberOfLines;
       const angleRad = (angle * Math.PI) / 180;
 
-      const endX = centerX + lineLength * Math.cos(angleRad);
-      const endY = centerY + lineLength * Math.sin(angleRad);
+      const endX = round(centerX + lineLength * Math.cos(angleRad));
+      const endY = round(centerY + lineLength * Math.sin(angleRad));
 
       lines.push({
         id: `radial-${i}`,
-        angle: angle,
-        startX: centerX,
-        startY: centerY,
+        angle: round(angle),
+        startX: round(centerX),
+        startY: round(centerY),
         endX: endX,
         endY: endY,
       });
@@ -110,79 +115,100 @@ export function RadarCanvas() {
     return lines;
   }, [centerX, centerY, dimensions, state.panX, state.panY]);
 
-  // Calculate automatic position based on due date
-  const calculateAutomaticPosition = (task: Task): Position => {
-    const now = new Date();
-    const timeDiff = task.dueDate.getTime() - now.getTime();
-    const daysDiff = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
+  // Rounding function for consistent number formatting
+  const round = (num: number) => Number(num.toFixed(2));
 
-    const baseRingSpacing = 60;
-    const radius = daysDiff * baseRingSpacing * state.zoom;
+  // Calculate task positions (pure calculation, no state updates)
+  const calculateTaskPosition = (task: Task): Position => {
+    const existingPosition = taskPositions[task.id];
+    const timeDiff = task.dueDate.getTime() - currentTime.getTime();
+    const daysDiff = Math.max(0, timeDiff / (1000 * 60 * 60 * 24));
 
-    const angle = (task.id.charCodeAt(0) * 137.5) % 360;
-    const angleRad = (angle * Math.PI) / 180;
+    if (
+      existingPosition?.isUserPositioned &&
+      existingPosition.relativeAngle !== undefined
+    ) {
+      // User-positioned task - maintain angle but update distance based on time
+      const baseRingSpacing = 60;
+      const newRelativeDistance = daysDiff * baseRingSpacing;
+      const scaledDistance = newRelativeDistance * state.zoom;
 
-    return {
-      x: centerX + radius * Math.cos(angleRad),
-      y: centerY + radius * Math.sin(angleRad),
-    };
+      return {
+        x: round(
+          centerX + scaledDistance * Math.cos(existingPosition.relativeAngle)
+        ),
+        y: round(
+          centerY + scaledDistance * Math.sin(existingPosition.relativeAngle)
+        ),
+      };
+    } else {
+      // Auto-positioned task
+      if (daysDiff <= 0) {
+        return { x: round(centerX), y: round(centerY) };
+      } else {
+        const baseRingSpacing = 60;
+        const radius = daysDiff * baseRingSpacing * state.zoom;
+        const angle = (task.id.charCodeAt(0) * 137.5) % 360;
+        const angleRad = (angle * Math.PI) / 180;
+
+        return {
+          x: round(centerX + radius * Math.cos(angleRad)),
+          y: round(centerY + radius * Math.sin(angleRad)),
+        };
+      }
+    }
   };
 
-  // Calculate position from relative coordinates (for user-positioned tasks)
-  const calculatePositionFromRelative = (
-    relativeDistance: number,
-    relativeAngle: number
-  ): Position => {
-    const scaledDistance = relativeDistance * state.zoom;
-    return {
-      x: centerX + scaledDistance * Math.cos(relativeAngle),
-      y: centerY + scaledDistance * Math.sin(relativeAngle),
-    };
-  };
-
-  // Update task positions when radar changes
+  // Update stored positions when time changes (separate from rendering)
   useEffect(() => {
-    tasks.forEach((task) => {
-      const currentPosition = taskPositions[task.id];
+    console.log(
+      "Updating task positions for time:",
+      currentTime.toLocaleString()
+    );
 
-      if (!currentPosition) {
-        // No position stored - calculate initial position
-        const initialPosition = calculateAutomaticPosition(task);
-        updateTaskPosition(task.id, {
-          ...initialPosition,
-          isUserPositioned: false,
-        });
-      } else if (!currentPosition.isUserPositioned) {
-        // Position exists but not user-positioned - recalculate based on due date
-        const newPosition = calculateAutomaticPosition(task);
-        updateTaskPosition(task.id, {
-          ...newPosition,
-          isUserPositioned: false,
-        });
-      } else if (
-        currentPosition.relativeDistance !== undefined &&
-        currentPosition.relativeAngle !== undefined
+    tasks.forEach((task) => {
+      const existingPosition = taskPositions[task.id];
+      const timeDiff = task.dueDate.getTime() - currentTime.getTime();
+      const daysDiff = Math.max(0, timeDiff / (1000 * 60 * 60 * 24));
+
+      console.log(`Task ${task.title}: ${daysDiff.toFixed(2)} days remaining`);
+
+      if (
+        existingPosition?.isUserPositioned &&
+        existingPosition.relativeAngle !== undefined
       ) {
-        // User-positioned task with relative coordinates - scale with zoom
-        const newPosition = calculatePositionFromRelative(
-          currentPosition.relativeDistance,
-          currentPosition.relativeAngle
-        );
+        // User-positioned task - update stored position with new distance
+        const baseRingSpacing = 60;
+        const newRelativeDistance = daysDiff * baseRingSpacing;
+        const scaledDistance = newRelativeDistance * state.zoom;
+
+        const newPosition = {
+          x:
+            centerX + scaledDistance * Math.cos(existingPosition.relativeAngle),
+          y:
+            centerY + scaledDistance * Math.sin(existingPosition.relativeAngle),
+        };
+
         updateTaskPosition(task.id, {
           ...newPosition,
           isUserPositioned: true,
-          relativeDistance: currentPosition.relativeDistance,
-          relativeAngle: currentPosition.relativeAngle,
+          relativeDistance: newRelativeDistance,
+          relativeAngle: existingPosition.relativeAngle,
+        });
+      } else if (!existingPosition || !existingPosition.isUserPositioned) {
+        // Auto-positioned task - update stored position
+        const newPosition = calculateTaskPosition(task);
+        updateTaskPosition(task.id, {
+          ...newPosition,
+          isUserPositioned: false,
         });
       }
     });
-  }, [centerX, centerY, state.zoom]);
+  }, [currentTime.getTime(), centerX, centerY, state.zoom]); // Use getTime() to avoid object reference issues
 
   const getTaskPosition = (task: Task): Position => {
-    const position = taskPositions[task.id];
-    return position
-      ? { x: position.x, y: position.y }
-      : { x: centerX, y: centerY };
+    // Use the calculated position directly
+    return calculateTaskPosition(task);
   };
 
   const handleTaskDragEnd = (taskId: string, newPosition: Position) => {
@@ -205,24 +231,21 @@ export function RadarCanvas() {
       relativeAngle: relativeAngle,
     });
 
-    // Calculate new due date based on dropped position
+    // Calculate new due date based on dropped position (relative to current time)
     const baseRingSpacing = 60;
-    const days = Math.max(0, Math.round(relativeDistance / baseRingSpacing));
+    const days = Math.max(0, relativeDistance / baseRingSpacing);
 
-    const newDueDate =
-      days === 0
-        ? new Date()
-        : new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    const newDueDate = new Date(
+      currentTime.getTime() + days * 24 * 60 * 60 * 1000
+    );
 
     updateTask(taskId, { dueDate: newDueDate });
 
-    console.log("Task dropped with relative positioning:", {
+    console.log("Task dragged:", {
       taskId,
-      screenPosition: newPosition,
-      relativeDistance,
-      relativeAngle: (relativeAngle * 180) / Math.PI, // Convert to degrees for readability
-      calculatedDays: days,
-      newDueDate: newDueDate.toLocaleDateString(),
+      currentTime: currentTime.toLocaleString(),
+      newDueDate: newDueDate.toLocaleString(),
+      days: days.toFixed(2),
     });
   };
 
@@ -357,6 +380,21 @@ export function RadarCanvas() {
           }}
         >
           TODAY
+        </text>
+
+        {/* Current time display in center */}
+        <text
+          x={centerX}
+          y={centerY - 45}
+          textAnchor="middle"
+          className="text-xs font-mono fill-emerald-300"
+          style={{
+            textShadow:
+              "0 0 4px rgba(16, 185, 129, 0.6), 0 1px 2px rgba(0,0,0,0.8)",
+            fontSize: "12px",
+          }}
+        >
+          {currentTime.toLocaleTimeString()}
         </text>
       </svg>
 

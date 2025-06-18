@@ -9,7 +9,7 @@ export function TaskLegend() {
   ];
 
   return (
-    <div className="absolute bottom-4 left-4 bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-lg shadow-xl p-2 z-50">
+    <div className="absolute bottom-12 left-4 bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-lg shadow-xl p-2 z-50">
       <h3 className="text-sm font-medium text-gray-200 mb-2">
         Priority Legend
       </h3>

@@ -13,7 +13,7 @@ interface TaskBlipProps {
 }
 
 export function TaskBlip({ task, position, onDragEnd }: TaskBlipProps) {
-  const { state, setSelectedTask } = useRadar();
+  const { state, currentTime, setSelectedTask, updateTask } = useRadar();
   const [isDragging, setIsDragging] = useState(false);
   const [dragPosition, setDragPosition] = useState(position);
   const [initialMousePos, setInitialMousePos] = useState({ x: 0, y: 0 });
@@ -26,17 +26,79 @@ export function TaskBlip({ task, position, onDragEnd }: TaskBlipProps) {
     }
   }, [position, isDragging]);
 
-  // Calculate current position based on drag state
-  const currentPosition = isDragging ? dragPosition : position;
+  // Memoized round function for consistent number formatting
+  const round = useCallback((num: number) => parseFloat(num.toFixed(2)), []);
 
-  // Calculate days remaining for display
+  // Calculate current position based on drag state with consistent rounding
+  const currentPosition = useMemo(() => {
+    const pos = isDragging ? dragPosition : position;
+    // Ensure consistent number of decimal places for hydration
+    const x = round(pos.x);
+    const y = round(pos.y);
+    return { x, y };
+  }, [isDragging, dragPosition, position, round]);
+
+  // Calculate radar center (assuming viewport center for now)
+  const [radarCenter, setRadarCenter] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    // This code only runs on the client side
+    const updateRadarCenter = () => {
+      setRadarCenter({
+        x: round(window.innerWidth / 2),
+        y: round(window.innerHeight / 2),
+      });
+    };
+
+    // Set initial value
+    updateRadarCenter();
+
+    // Update on window resize with debounce
+    let resizeTimer: NodeJS.Timeout;
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(updateRadarCenter, 100);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(resizeTimer);
+    };
+  }, [round]);
+
+  // Calculate real-time due date based on current drag position
+  const calculateDueDateFromPosition = useCallback(
+    (pos: Position) => {
+      const deltaX = pos.x - radarCenter.x;
+      const deltaY = pos.y - radarCenter.y;
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+      // Convert distance to days (same logic as in radar-canvas)
+      const baseRingSpacing = 60;
+      const zoom = state.zoom;
+      const relativeDistance = distance / zoom;
+      const days = Math.max(0, relativeDistance / baseRingSpacing);
+
+      return new Date(currentTime.getTime() + days * 24 * 60 * 60 * 1000);
+    },
+    [radarCenter, state.zoom, currentTime]
+  );
+
+  // Get the effective due date (real-time during drag, or actual due date)
+  const effectiveDueDate = useMemo(() => {
+    if (isDragging) {
+      return calculateDueDateFromPosition(dragPosition);
+    }
+    return task.dueDate;
+  }, [isDragging, dragPosition, calculateDueDateFromPosition, task.dueDate]);
+
+  // Calculate days remaining using the effective due date
   const daysRemaining = useMemo(() => {
-    if (!task.dueDate) return 0;
-    const now = new Date();
-    const dueDate = new Date(task.dueDate);
-    const diffTime = dueDate.getTime() - now.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  }, [task.dueDate]);
+    if (!effectiveDueDate) return 0;
+    const diffTime = effectiveDueDate.getTime() - currentTime.getTime();
+    return diffTime / (1000 * 60 * 60 * 24);
+  }, [effectiveDueDate, currentTime]);
 
   const isOverdue = daysRemaining < 0;
   const isSelected = state.selectedTask === task.id;
@@ -64,13 +126,38 @@ export function TaskBlip({ task, position, onDragEnd }: TaskBlipProps) {
       const deltaX = e.clientX - initialMousePos.x;
       const deltaY = e.clientY - initialMousePos.y;
 
-      // Update drag position based on initial position + delta
-      setDragPosition({
-        x: initialTaskPos.x + deltaX,
-        y: initialTaskPos.y + deltaY,
+      // Update drag position based on initial position + delta with rounding
+      const newDragPosition = {
+        x: round(initialTaskPos.x + deltaX),
+        y: round(initialTaskPos.y + deltaY),
+      };
+
+      setDragPosition(newDragPosition);
+
+      // Calculate and update due date in real-time
+      const newDueDate = calculateDueDateFromPosition(newDragPosition);
+      updateTask(task.id, { dueDate: newDueDate });
+
+      console.log(`🔄 Real-time update for ${task.title}:`, {
+        position: newDragPosition,
+        newDueDate: newDueDate.toLocaleString(),
+        daysFromNow: (
+          (newDueDate.getTime() - currentTime.getTime()) /
+          (1000 * 60 * 60 * 24)
+        ).toFixed(2),
       });
     },
-    [isDragging, initialMousePos, initialTaskPos]
+    [
+      isDragging,
+      initialMousePos,
+      initialTaskPos,
+      round,
+      calculateDueDateFromPosition,
+      updateTask,
+      task.id,
+      task.title,
+      currentTime,
+    ]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -79,7 +166,12 @@ export function TaskBlip({ task, position, onDragEnd }: TaskBlipProps) {
     setIsDragging(false);
     // Pass the final drag position to the parent
     onDragEnd(task.id, dragPosition);
-  }, [isDragging, onDragEnd, task.id, dragPosition]);
+
+    console.log(`✅ Final position for ${task.title}:`, {
+      finalPosition: dragPosition,
+      finalDueDate: task.dueDate.toLocaleString(),
+    });
+  }, [isDragging, onDragEnd, task.id, dragPosition, task.title, task.dueDate]);
 
   useEffect(() => {
     if (!isDragging) return;
@@ -101,9 +193,26 @@ export function TaskBlip({ task, position, onDragEnd }: TaskBlipProps) {
     }
   };
 
+  // Format time remaining for display
+  const formatTimeRemaining = (days: number) => {
+    if (days < 0) return "Overdue";
+
+    const totalHours = days * 24;
+    if (totalHours < 1) {
+      const minutes = Math.ceil(totalHours * 60);
+      return `${minutes}m`;
+    } else if (totalHours < 24) {
+      const hours = Math.ceil(totalHours);
+      return `${hours}h`;
+    } else {
+      const wholeDays = Math.ceil(days);
+      return `${wholeDays}d`;
+    }
+  };
+
   return (
     <div
-      className={`absolute transition-transform duration-200 ${
+      className={`absolute transition-transform duration-100 ease-out ${
         isDragging ? "opacity-90 scale-105 z-50" : "hover:scale-105 z-0"
       } ${isSelected ? "z-20" : ""}`}
       style={{
@@ -118,7 +227,9 @@ export function TaskBlip({ task, position, onDragEnd }: TaskBlipProps) {
     >
       <div
         className={`flex flex-col bg-gray-800/90 backdrop-blur-sm rounded-lg border border-gray-700 shadow-lg transition-all duration-200 ${
-          isDragging ? "ring-2 ring-emerald-400/50 shadow-xl" : ""
+          isDragging
+            ? "ring-2 ring-emerald-400/50 shadow-xl bg-emerald-900/20"
+            : ""
         } ${isSelected ? "ring-2 ring-emerald-500/70" : ""}`}
       >
         <div className="w-full flex justify-center py-0.5 cursor-grabbing drag-handle">
@@ -142,12 +253,36 @@ export function TaskBlip({ task, position, onDragEnd }: TaskBlipProps) {
                     : "bg-green-500"
               }`}
             />
-            <span className="text-[10px] leading-none truncate">
-              {isOverdue ? "Overdue" : `${daysRemaining} days`}
+            <span
+              className={`text-[10px] leading-none truncate ${
+                isDragging ? "text-emerald-300 font-medium" : ""
+              } ${isOverdue ? "text-red-400" : ""}`}
+            >
+              {formatTimeRemaining(daysRemaining)}
             </span>
           </div>
         </div>
       </div>
+
+      {/* Real-time drag feedback tooltip */}
+      {isDragging && (
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-emerald-900/95 backdrop-blur-sm rounded-lg p-3 border border-emerald-500/50 shadow-xl z-40 min-w-48">
+          <div className="text-sm font-medium text-emerald-100 mb-2">
+            📅 Updating Due Date
+          </div>
+          <div className="text-xs text-emerald-200 mb-1">
+            <strong>New due date:</strong>{" "}
+            {effectiveDueDate.toLocaleDateString()} at{" "}
+            {effectiveDueDate.toLocaleTimeString()}
+          </div>
+          <div className="text-xs text-emerald-300">
+            <strong>Time from now:</strong> {formatTimeRemaining(daysRemaining)}
+          </div>
+          <div className="text-xs text-emerald-400 mt-2 opacity-75">
+            Release to confirm
+          </div>
+        </div>
+      )}
 
       {/* Enhanced tooltip for selected task */}
       {isSelected && !isDragging && (
@@ -159,7 +294,7 @@ export function TaskBlip({ task, position, onDragEnd }: TaskBlipProps) {
             <div className="text-xs text-gray-300 mb-2">{task.description}</div>
           )}
           <div className="flex items-center justify-between text-xs text-gray-400">
-            <span>Due: {task.dueDate.toLocaleDateString()}</span>
+            <span>Due: {effectiveDueDate.toLocaleDateString()}</span>
             <span className="capitalize">{task.priority} priority</span>
           </div>
           {isOverdue && (
@@ -167,6 +302,9 @@ export function TaskBlip({ task, position, onDragEnd }: TaskBlipProps) {
               ⚠️ This task is overdue
             </div>
           )}
+          <div className="text-xs text-gray-500 mt-1">
+            Time remaining: {Math.ceil(Math.max(0, daysRemaining * 24))} hours
+          </div>
         </div>
       )}
     </div>

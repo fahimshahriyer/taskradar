@@ -11,29 +11,36 @@ import {
 import {
   SidebarInset,
   SidebarProvider,
+  SidebarTrigger,
 } from "@workspace/ui/components/sidebar";
 import RadarTaskManager from "@/components/radar/radar-task-manager";
+import { Separator } from "@workspace/ui/components/separator";
 
 export default function Page() {
   return (
     <SidebarProvider>
       <SidebarLeft />
-      <SidebarInset className="flex flex-col bg-background">
-        <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-4 py-3 border-b h-16">
-          <div className="flex items-center justify-between">
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b">
+          <div className="flex flex-1 items-center gap-2 px-3">
+            <SidebarTrigger />
+            <Separator
+              orientation="vertical"
+              className="mr-2 data-[orientation=vertical]:h-4"
+            />
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Mission Control</BreadcrumbPage>
+                  <BreadcrumbPage className="line-clamp-1">
+                    Project Management & Task Tracking
+                  </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
         </header>
-        <div className="flex flex-1 flex-col p-2">
-          <div className="w-full h-full">
-            <RadarTaskManager />
-          </div>
+        <div className="flex flex-1 flex-col gap-4 p-2">
+          <RadarTaskManager />
         </div>
       </SidebarInset>
       <SidebarRight />

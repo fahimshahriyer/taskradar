@@ -4,6 +4,9 @@ import React, {
   createContext,
   useContext,
   useReducer,
+  useState,
+  useEffect,
+  useCallback,
   type ReactNode,
 } from "react";
 import type { RadarState, Task } from "../types/";
@@ -21,12 +24,16 @@ interface RadarContextType {
   state: RadarState;
   tasks: Task[];
   taskPositions: Record<string, TaskPosition>;
+  currentTime: Date;
+  timeOffset: number;
   updateTask: (taskId: string, updates: Partial<Task>) => void;
   updateTaskPosition: (taskId: string, position: TaskPosition) => void;
   setZoom: (zoom: number) => void;
   setPan: (x: number, y: number) => void;
   toggleCenterLock: () => void;
   setSelectedTask: (taskId: string | null) => void;
+  setTimeOffset: (offset: number) => void;
+  recalculatePositions: () => void;
 }
 
 const RadarContext = createContext<RadarContextType | undefined>(undefined);
@@ -35,11 +42,7 @@ type RadarAction =
   | { type: "SET_ZOOM"; payload: number }
   | { type: "SET_PAN"; payload: { x: number; y: number } }
   | { type: "TOGGLE_CENTER_LOCK" }
-  | { type: "SET_SELECTED_TASK"; payload: string | null }
-  | {
-      type: "UPDATE_TASK_POSITION";
-      payload: { taskId: string; position: TaskPosition };
-    };
+  | { type: "SET_SELECTED_TASK"; payload: string | null };
 
 const radarReducer = (state: RadarState, action: RadarAction): RadarState => {
   switch (action.type) {
@@ -123,6 +126,19 @@ export function RadarProvider({ children }: { children: ReactNode }) {
   const [taskPositions, setTaskPositions] = React.useState<
     Record<string, TaskPosition>
   >({});
+  const [timeOffset, setTimeOffset] = useState(0); // Time offset in minutes
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update current time every second, accounting for time offset
+  useEffect(() => {
+    const timeInterval = setInterval(() => {
+      const now = new Date();
+      const adjustedTime = new Date(now.getTime() + timeOffset * 60 * 1000);
+      setCurrentTime(adjustedTime);
+    }, 1000);
+
+    return () => clearInterval(timeInterval);
+  }, [timeOffset]);
 
   const updateTask = (taskId: string, updates: Partial<Task>) => {
     setTasks((prev) =>
@@ -153,18 +169,33 @@ export function RadarProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "SET_SELECTED_TASK", payload: taskId });
   };
 
+  // Function to trigger position recalculation
+  const recalculatePositions = useCallback(() => {
+    console.log(
+      "Recalculating positions for time:",
+      currentTime.toLocaleString()
+    );
+
+    // This will be called by the canvas component when needed
+    // We expose this function so the canvas can trigger updates
+  }, [currentTime]);
+
   return (
     <RadarContext.Provider
       value={{
         state,
         tasks,
         taskPositions,
+        currentTime,
+        timeOffset,
         updateTask,
         updateTaskPosition,
         setZoom,
         setPan,
         toggleCenterLock,
         setSelectedTask,
+        setTimeOffset,
+        recalculatePositions,
       }}
     >
       {children}
