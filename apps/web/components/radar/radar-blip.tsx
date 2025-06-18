@@ -1,23 +1,36 @@
 import { GripVertical, Circle } from "lucide-react";
 
+import type { Task } from "./types";
+
 interface RadarBlipProps {
   x: number;
   y: number;
-  task: {
-    id: string;
-    title: string;
-    dueDate: Date;
-    priority: "low" | "medium" | "high";
-    status: "todo" | "in-progress" | "done";
-  };
+  task: Task;
   hovered?: boolean;
   onHover?: () => void;
   onLeave?: () => void;
+  onTaskUpdate?: (updatedTask: Task) => void;
 }
 
-export function RadarBlip({ x, y, task, hovered = false, onHover, onLeave }: RadarBlipProps) {
+export function RadarBlip({ x, y, task, hovered = false, onHover, onLeave, onTaskUpdate }: RadarBlipProps) {
+  const handleClick = () => {
+    if (onTaskUpdate) {
+      // For demonstration, toggle the task status
+      const updatedTask: Task = {
+        ...task,
+        status: task.status === "todo" 
+          ? "in-progress" 
+          : task.status === "in-progress" 
+          ? "done" 
+          : "todo"
+      };
+      onTaskUpdate(updatedTask);
+    }
+  };
+
   return (
     <div
+      onClick={handleClick}
       className={`absolute cursor-pointer transition-all duration-200 ${hovered ? "z-50 translate-x-4 shadow-xl" : "z-10"}`}
       style={{
         left: `calc(50% + ${x}px)`,

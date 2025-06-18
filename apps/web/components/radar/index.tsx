@@ -2,22 +2,22 @@
 import { useState, useEffect } from "react";
 import { RadarBlip } from "./radar-blip";
 import { RadarControls } from "./radar-controls";
+import type { Task } from "./types";
 
-interface Task {
-  id: string;
-  title: string;
-  dueDate: Date;
-  priority: "low" | "medium" | "high";
-  status: "todo" | "in-progress" | "done";
+interface RadarProps {
+  tasks: Task[];
+  onTaskUpdate: (updatedTask: Task) => void;
 }
 
-export function Radar() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+export function Radar({ tasks: tasksProp, onTaskUpdate }: RadarProps) {
   const [now, setNow] = useState(new Date());
   const [hoveredBlipId, setHoveredBlipId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'time' | 'priority' | 'status'>('time');
+  const [viewMode, setViewMode] = useState<"time" | "priority" | "status">("time");
   const [showLabels, setShowLabels] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
+
+  // Use the passed tasks prop directly
+  const tasks = tasksProp;
 
   // Update time every second
   useEffect(() => {
@@ -28,54 +28,13 @@ export function Radar() {
     return () => clearInterval(timer);
   }, []);
 
-  // Sample tasks
-  useEffect(() => {
-    setTasks([
-      {
-        id: "1",
-        title: "Research recommended reading lists",
-        dueDate: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
-        priority: "medium",
-        status: "todo",
-      },
-      {
-        id: "2",
-        title: "Summarize key ideas from 'Atomic Habits'",
-        dueDate: new Date(now.getTime() + 48 * 60 * 60 * 1000), // 48 hours from now
-        priority: "high",
-        status: "in-progress",
-      },
-      {
-        id: "3",
-        title: "Organize reading list by theme",
-        dueDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-        priority: "low",
-        status: "todo",
-      },
-      {
-        id: "4",
-        title: "Add book highlights to Notion",
-        dueDate: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000), // 1 day from now
-        priority: "high",
-        status: "in-progress",
-      },
-      {
-        id: "5",
-        title: "Review and rate finished books",
-        dueDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
-        priority: "medium",
-        status: "todo",
-      },
-    ]);
-  }, [now]);
-
   // Determine task position based on view mode
   const calculatePosition = (task: Task) => {
     const maxRadius = 400;
     const angle = getStableAngle(task.id);
-    
+
     switch (viewMode) {
-      case 'time': {
+      case "time": {
         const timeDiff = task.dueDate.getTime() - now.getTime();
         const maxTimeDiff = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
         const radius = (timeDiff / maxTimeDiff) * maxRadius;
@@ -85,7 +44,7 @@ export function Radar() {
           angle,
         };
       }
-      case 'priority': {
+      case "priority": {
         const priorityMap = { low: 0.3, medium: 0.6, high: 1 };
         const priorityRadius = priorityMap[task.priority] * maxRadius;
         return {
@@ -94,8 +53,8 @@ export function Radar() {
           angle,
         };
       }
-      case 'status': {
-        const statusMap = { todo: 0.3, 'in-progress': 0.6, done: 1 };
+      case "status": {
+        const statusMap = { todo: 0.3, "in-progress": 0.6, done: 1 };
         const statusRadius = statusMap[task.status] * maxRadius;
         return {
           x: statusRadius * Math.cos(angle),
@@ -121,8 +80,6 @@ export function Radar() {
     }
     return (((hash % 360) + 360) % 360) * (Math.PI / 180); // 0 to 2PI
   };
-
-
 
   // Render grid circles
   const renderGrid = () => {
@@ -151,23 +108,23 @@ export function Radar() {
   // Render labels
   const renderLabels = () => {
     if (!showLabels) return null;
-    
+
     const labelPositions = {
       time: [
-        { text: 'Today', radius: 100 },
-        { text: '2 Days', radius: 200 },
-        { text: '4 Days', radius: 300 },
-        { text: '7 Days', radius: 400 },
+        { text: "Today", radius: 100 },
+        { text: "2 Days", radius: 200 },
+        { text: "4 Days", radius: 300 },
+        { text: "7 Days", radius: 400 },
       ],
       priority: [
-        { text: 'Low', radius: 120 },
-        { text: 'Medium', radius: 240 },
-        { text: 'High', radius: 360 },
+        { text: "Low", radius: 120 },
+        { text: "Medium", radius: 240 },
+        { text: "High", radius: 360 },
       ],
       status: [
-        { text: 'Todo', radius: 120 },
-        { text: 'In Progress', radius: 240 },
-        { text: 'Done', radius: 360 },
+        { text: "Todo", radius: 120 },
+        { text: "In Progress", radius: 240 },
+        { text: "Done", radius: 360 },
       ],
     };
 
@@ -182,7 +139,7 @@ export function Radar() {
               left: `calc(50% - ${label.radius}px)`,
               width: `${label.radius * 2}px`,
               height: `${label.radius * 2}px`,
-              transform: 'translate(-50%, -50%)',
+              transform: "translate(-50%, -50%)",
             }}
           >
             <div className="absolute top-0 left-0 transform translate-x-1/2 -translate-y-1/2 text-xs text-muted-foreground">
@@ -208,28 +165,36 @@ export function Radar() {
       {renderLabels()}
       {/* Tasks */}
       <div className="absolute inset-0">
-        {tasks.map((task: Task) => {
-          const { x, y } = calculatePosition(task);
-          return (
-            <RadarBlip
-              key={task.id}
-              x={x}
-              y={y}
-              task={task}
-              hovered={hoveredBlipId === task.id}
-              onHover={() => setHoveredBlipId(task.id)}
-              onLeave={() => setHoveredBlipId(null)}
-            />
-          );
-        })}
+        {tasks.length === 0 ? (
+          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+            No tasks found
+          </div>
+        ) : (
+          tasks.map((task: Task) => {
+            const { x, y } = calculatePosition(task);
+            return (
+              <RadarBlip
+                key={task.id}
+                x={x}
+                y={y}
+                task={task}
+                hovered={hoveredBlipId === task.id}
+                onHover={() => setHoveredBlipId(task.id)}
+                onLeave={() => setHoveredBlipId(null)}
+                onTaskUpdate={onTaskUpdate}
+              />
+            );
+          })
+        )}
       </div>
-      {/* Center */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
             <div className="w-8 h-8 rounded-full bg-primary" />
           </div>
-          <span className="text-sm text-muted-foreground">{viewMode === 'time' ? 'Now' : 'Center'}</span>
+          <span className="text-sm text-muted-foreground">
+            {viewMode === "time" ? "Now" : "Center"}
+          </span>
         </div>
       </div>
     </div>
