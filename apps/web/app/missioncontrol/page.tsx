@@ -12,24 +12,14 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@workspace/ui/components/sidebar";
-import dynamic from "next/dynamic";
-
-// Dynamically import the radar2 component with no SSR
-const Radar = dynamic(() => import("@/components/radar2"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center h-full">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    </div>
-  ),
-});
+import RadarTaskManager from "@/components/radar/radar-task-manager";
 
 export default function Page() {
   return (
     <SidebarProvider>
       <SidebarLeft />
       <SidebarInset className="flex flex-col bg-background">
-        <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-4 py-3 border-b">
+        <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-4 py-3 border-b h-16">
           <div className="flex items-center justify-between">
             <Breadcrumb>
               <BreadcrumbList>
@@ -40,9 +30,9 @@ export default function Page() {
             </Breadcrumb>
           </div>
         </header>
-        <div className="flex flex-1 flex-col p-4">
+        <div className="flex flex-1 flex-col p-2">
           <div className="w-full h-full">
-            <Radar />
+            <RadarTaskManager />
           </div>
         </div>
       </SidebarInset>
