@@ -5,8 +5,6 @@ import { ZoomControls } from "./components/zoom-control";
 import { CenterLockToggle } from "./components/center-lock-toggle";
 import { TaskLegend } from "./components/task-legend";
 import { InformationBar } from "./components/information-bar";
-import { TaskDetailsSidebar } from "./components/task-detail-sidebar";
-import { sampleTasks } from "./data/mockData";
 import { useRadar } from "./context/radar-context";
 
 function RadarContent() {
@@ -17,7 +15,7 @@ function RadarContent() {
   };
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full select-none">
       {/* Main radar view */}
       <div className="w-full h-full">
         <RadarCanvas />
@@ -30,10 +28,10 @@ function RadarContent() {
       <InformationBar />
 
       {/* Task Details Sidebar */}
-      <TaskDetailsSidebar
+      {/* <TaskDetailsSidebar
         isOpen={!!state.selectedTask}
         onClose={handleCloseSidebar}
-      />
+      /> */}
 
       {/* Instructions */}
       <div className="absolute bottom-12 right-4 bg-gray-800/90 backdrop-blur-sm  border border-gray-700 rounded-lg p-3 max-w-xs z-10">

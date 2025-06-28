@@ -4,6 +4,10 @@ export interface Task {
   dueDate: Date;
   priority: "low" | "medium" | "high";
   description?: string;
+  attachments?: number;
+  comments?: number;
+  assignees?: { initial: string; color: string }[];
+  status?: "todo" | "in-progress" | "done";
 }
 
 export interface RadarRing {

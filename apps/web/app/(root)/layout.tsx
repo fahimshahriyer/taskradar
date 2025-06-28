@@ -13,10 +13,9 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@workspace/ui/components/sidebar";
-import RadarTaskManager from "@/components/radar/radar-task-manager";
 import { Separator } from "@workspace/ui/components/separator";
 
-export default function Page() {
+export default function Page({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <SidebarLeft />
@@ -32,16 +31,14 @@ export default function Page() {
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbPage className="line-clamp-1">
-                    Project Management & Task Tracking
+                    Mission Control
                   </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-2">
-          <RadarTaskManager />
-        </div>
+        <div className="flex flex-1 flex-col gap-4 p-2">{children}</div>
       </SidebarInset>
       <SidebarRight />
     </SidebarProvider>
